@@ -36,7 +36,7 @@ kr = 1.6e-9
 Damkohler = 1e-3
 density = 5.8e3 # kg m^-3
 MW = 0.096 # kg mol^-1
-Q = (4*np.pi*density) / 3 * MW * Vtot * MInf
+Q = (4*np.pi*density) / (3 * MW * Vtot * MInf)
 
 # Define time bins
 tmax = 5e-6 # 3600
