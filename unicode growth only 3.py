@@ -71,7 +71,7 @@ print("NNum = " + str(NNum))
 # Create an initial distribution of nanoparticles (to analyse growth stage)
 sum = 0
 for r in rBins:
-    g = (1 / (1e-10 * np.sqrt((2*np.pi)))) * np.exp((-np.power((r - 1e-9), 2)) / (2*(1e-10)**2)) # distribution with mean radius 1*10^-9 standard deviation of 10%
+    g = NNum * (1 / (1e-10 * np.sqrt((2*np.pi)))) * np.exp((-np.power((r - 1e-9), 2)) / (2*(1e-10)**2)) # distribution with mean radius 1*10^-9 standard deviation of 10%
     sum+=g*rdiff # check probabilities sum to NNum (approx)
     #print(g)
     NArraysArray[0].append(g) # g going to 0 for all r
@@ -208,7 +208,7 @@ for time in timeArray: #start at timestep tdiff not 0
         #print("   ")
 
         #Calculate element of SS integral for current r & add to array
-        SSIntegralElement = pow(r,3) * (1/Vtot) * (NArraysArray[1][rCount] - NArraysArray[0][rCount])
+        SSIntegralElement = pow(r,3) * (NArraysArray[1][rCount] - NArraysArray[0][rCount])
         SSSumsArray.append(SSIntegralElement)
 
     plt.plot(rBins, NHalfPosList)
@@ -254,4 +254,3 @@ plt.show()
 plt.semilogx(timeArrayFull, SSArray, label="Heating rate = x K/min")
 plt.title("Supersaturation against time")
 plt.show()
-
