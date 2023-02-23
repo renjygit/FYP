@@ -113,23 +113,7 @@ for time in timeArray: #start at timestep tdiff not 0
     Damkohler = (D * phi) / kr
     tau = time * psi
     """  
-    """
-    # Calculate critical radius, 'p' exponent and thus nucleation rate.
-    rCrit = (2*gamma*VmMolar) / (R*Temp*np.log(SS))
-    print("rCrit " + str(rCrit))
-    p = np.power((rCrit/rm), 3) # Need actual value of rm not molar value
-    # Use logarithms to reduce computation (exponents very large)
-    lnRnuc = np.log(8*np.pi*rm*D*NA) + (p*u+1) * np.log(SS) * 2*np.log(MInf)  - ((4*np.pi*np.power(rCrit, 2)*gamma)/(3*kB*Temp)) #Need actual value of rm not molar value
-    
-    #print("Rnuc exponent " +str(np.exp((-4*np.pi*np.power(rCrit, 2)*gamma)/(3*kB*Temp))))
-    #print("Rnuc " + str(Rnuc))
-    """
-    
-    # Calculate standard deviation for this temperature.
-    sigma = np.sqrt(kB*Temp/2)
-    #print("sigma " + str(sigma))
-    
-    
+
     # Add a new empty array to N array to hold newly calculated values.
     NArraysArray.append([])
     # Create empty array for SS integral elements (resets each iteration)
@@ -153,20 +137,6 @@ for time in timeArray: #start at timestep tdiff not 0
             NHalfPosList.append(NHalfPos)
             NHalfNegList.append(NHalfNeg)
         else:
-            """
-            # Calculate value of distribution for this temperature and radius. Again use logarithms.
-            lng = -np.log(sigma*np.sqrt((2*np.pi))) - ((-k*np.power((r-rCrit), 2)) / (2*np.power(sigma, 2))) 
-            #print("g " + str(g))
-            
-            # Calculate intermediate value of N using N value at previous timestep
-            #print("lnRnuc + lng " + str(lnRnuc + lng))
-
-            """   
-            
-
-            
-
-            
             # Calculate deltapos and deltaneg
             deltapos = NArraysArray[0][rCount+1] - NArraysArray[0][rCount]
             deltaneg = NArraysArray[0][rCount] - NArraysArray[0][rCount-1]
