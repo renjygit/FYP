@@ -90,15 +90,14 @@ for time in timeArray: #start at timestep tdiff not 0
     timeCount +=1 # Keep track of number of time iterations
     #print(timeCount)
     
+    # Calculate critical radius (for comparison purposes)
+    rCrit = (2*gamma*VmMolar) / (R*Temp*np.log(SS))
+    print("rCrit " + str(rCrit))
+    
     plt.plot(rBins, NArraysArray[0])
     plt.title("Nanoparticle radius distribution t = " + str(time-tdiff))
+    plt.plot(rCrit,0.1e29,'ro')
     plt.show()
-    
-    # Increase the temperature by the heating rate up to the maximum
-    if (Temp < Tf):
-        Temp += tdiff*HR
-    #print("temp " +str(Temp))
-    
     
     """
     # Calculate the change to the precursor population and add the result to an array
@@ -112,7 +111,7 @@ for time in timeArray: #start at timestep tdiff not 0
     psi = phi**2 * D * Vm * MInf
     Damkohler = (D * phi) / kr
     tau = time * psi
-    """  
+    """
 
     # Add a new empty array to N array to hold newly calculated values.
     NArraysArray.append([])
@@ -213,6 +212,11 @@ for time in timeArray: #start at timestep tdiff not 0
     #print(NArraysArray[0])
     
     print("navgarray = " + str(NArrayAvgR))
+    
+    # Increase the temperature by the heating rate up to the maximum
+    if (Temp < Tf):
+        Temp += tdiff*HR
+    #print("temp " +str(Temp))
 
     
 
