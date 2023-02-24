@@ -29,18 +29,18 @@ NA = 6.022e23
 Vtot = 0.0252e-3
 MInf = 1e-2 #mol m^-3 #
 u = 0.42 # coagulation parameter
-gamma = 0.4 # J m^-2
+gamma = 0.2 #0.4 # J m^-2
 kB = 1.38e-23
-k = 0.1 # 1e12 # J mol^-1 m^-1 distribution exponent constant --------------------------------------------
+k = 1e12 # J mol^-1 m^-1 distribution exponent constant
 kr = 1.6e-9
-Damkohler = 2e3 # 1e-3 # can change up to 2000
+Damkohler = 2e5 # 1e-3 # can change up to 2000
 density = 5.8e3 # kg m^-3
 MW = 0.096 # kg mol^-1
 Q = (4*np.pi*density) / (3 * MW * Vtot * MInf)
 
 # Define time bins
-tmax = 1e1 # 3600
-tdiff = 1e-3 #1e-3
+tmax = 1e-3 # 3600
+tdiff = 1e-6 #1e-3
 timeArray = np.linspace(tdiff, tmax, int(tmax/tdiff))
 timeCount = 0
 
@@ -105,9 +105,10 @@ for time in timeArray: #start at timestep tdiff not 0
     PPopArray.append(Ppop)
     """
 
-    """
+    
     # De-dimensionalised values
     phi = (R * Temp) / (2 * gamma *Vm)
+    """
     psi = phi**2 * D * Vm * MInf
     Damkohler = (D * phi) / kr
     tau = time * psi
@@ -157,8 +158,8 @@ for time in timeArray: #start at timestep tdiff not 0
                 
         
         # Calculate the growth rates at radii (i+1/2) and (i-1/2)
-        growthRatepos = (D * VmMolar * SS * (1-np.exp((2*gamma*VmMolar)/((r+0.5*rdiff)*R*Temp)))) / ((r+0.5*rdiff) + Damkohler) # Find growth rate for i+1/2, i.e. current radius plus half a step
-        growthRateneg = (D * VmMolar * SS * (1-np.exp((2*gamma*VmMolar)/((r-0.5*rdiff)*R*Temp)))) / ((r-0.5*rdiff) + Damkohler) # Find growth rate for i-1/2, i.e. current radius minus half a step
+        growthRatepos = (D * VmMolar * SS * (1-np.exp((2*gamma*VmMolar)/((r+0.5*rdiff)*R*Temp)))) / ((r+0.5*rdiff) + (Damkohler/phi)) # Find growth rate for i+1/2, i.e. current radius plus half a step
+        growthRateneg = (D * VmMolar * SS * (1-np.exp((2*gamma*VmMolar)/((r-0.5*rdiff)*R*Temp)))) / ((r-0.5*rdiff) + (Damkohler/phi)) # Find growth rate for i-1/2, i.e. current radius minus half a step
         #print("r " + str(r))
         #print("growthRatepos exponent " + str((2*gamma*VmMolar)/((r+0.5*rdiff)*R*Temp)))
         #print("growthRatepos e " + str(np.exp((2*gamma*VmMolar)/((r+0.5*rdiff)*R*Temp))))
@@ -191,8 +192,8 @@ for time in timeArray: #start at timestep tdiff not 0
     
     # Add average radius of N to array
     NArrayAvgR.append([stats.fmean(NArraysArray[1])])
-
-    #print("Avg N " + str(NArrayAvgR[timeCount]))
+    print("Avg N radius = " + str(NArrayAvgR[timeCount]))
+    
     # Delete N array for previous timestep (to conserve memory since it is no longer needed)
     #print(NArraysArray)
     del NArraysArray[0]
@@ -211,12 +212,11 @@ for time in timeArray: #start at timestep tdiff not 0
     #print("   ")
     #print(NArraysArray[0])
     
-    print("navgarray = " + str(NArrayAvgR))
     
     # Increase the temperature by the heating rate up to the maximum
     if (Temp < Tf):
         Temp += tdiff*HR
-    #print("temp " +str(Temp))
+    print("temp " +str(Temp))
 
     
 
@@ -230,6 +230,7 @@ plt.show()
 """
 
 plt.plot(rBins, NArraysArray[0])
+plt.title("Final nanoparticle size distribution")
 plt.show()
 
 # Plot supersaturation against time
