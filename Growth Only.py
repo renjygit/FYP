@@ -39,7 +39,7 @@ MW = 0.096 # kg mol^-1
 Q = (4*np.pi*density) / (3 * MW * Vtot * MInf)
 
 # Define time bins
-tmax = 1e-3 # 3600
+tmax = 0.5e-3 # 3600
 tdiff = 1e-6 #1e-3
 timeArray = np.linspace(tdiff, tmax, int(tmax/tdiff))
 timeCount = 0
@@ -89,6 +89,7 @@ NArrayAvgR = [stats.fmean(NArraysArray[0])]
 for time in timeArray: #start at timestep tdiff not 0
     timeCount +=1 # Keep track of number of time iterations
     #print(timeCount)
+    print("temp " +str(Temp))
     
     # Calculate critical radius (for comparison purposes)
     rCrit = (2*gamma*VmMolar) / (R*Temp*np.log(SS))
@@ -107,7 +108,8 @@ for time in timeArray: #start at timestep tdiff not 0
 
     
     # De-dimensionalised values
-    phi = (R * Temp) / (2 * gamma *Vm)
+    phi = (R * Temp) / (2 * gamma *VmMolar)
+    print("phi = " + str(phi))
     """
     psi = phi**2 * D * Vm * MInf
     Damkohler = (D * phi) / kr
@@ -158,8 +160,8 @@ for time in timeArray: #start at timestep tdiff not 0
                 
         
         # Calculate the growth rates at radii (i+1/2) and (i-1/2)
-        growthRatepos = (D * VmMolar * SS * (1-np.exp((2*gamma*VmMolar)/((r+0.5*rdiff)*R*Temp)))) / ((r+0.5*rdiff) + (Damkohler/phi)) # Find growth rate for i+1/2, i.e. current radius plus half a step
-        growthRateneg = (D * VmMolar * SS * (1-np.exp((2*gamma*VmMolar)/((r-0.5*rdiff)*R*Temp)))) / ((r-0.5*rdiff) + (Damkohler/phi)) # Find growth rate for i-1/2, i.e. current radius minus half a step
+        growthRatepos = -(D * VmMolar * SS * (1-np.exp((2*gamma*VmMolar)/((r+0.5*rdiff)*R*Temp)))) / ((r+0.5*rdiff) + (Damkohler/phi)) # Find growth rate for i+1/2, i.e. current radius plus half a step
+        growthRateneg = -(D * VmMolar * SS * (1-np.exp((2*gamma*VmMolar)/((r-0.5*rdiff)*R*Temp)))) / ((r-0.5*rdiff) + (Damkohler/phi)) # Find growth rate for i-1/2, i.e. current radius minus half a step
         #print("r " + str(r))
         #print("growthRatepos exponent " + str((2*gamma*VmMolar)/((r+0.5*rdiff)*R*Temp)))
         #print("growthRatepos e " + str(np.exp((2*gamma*VmMolar)/((r+0.5*rdiff)*R*Temp))))
@@ -169,8 +171,8 @@ for time in timeArray: #start at timestep tdiff not 0
         # Check Courant condition - just prints warning at present
         if (np.abs(growthRatepos) * tdiff/rdiff) > 1 or (np.abs(growthRateneg) * tdiff/rdiff) >1:
             print("Courant condition not satisfied.")
-            print("Courant value for growthratepos " + str(growthRatepos * tdiff/rdiff))
-            print("Courant value for growthrateneg " + str(growthRateneg * tdiff/rdiff))
+            print("Courant value for growthratepos " + str(np.abs(growthRatepos) * tdiff/rdiff))
+            print("Courant value for growthrateneg " + str(np.abs(growthRateneg) * tdiff/rdiff))
             sys.exit()        
         
         # Calculate new N & add to the array
@@ -216,7 +218,6 @@ for time in timeArray: #start at timestep tdiff not 0
     # Increase the temperature by the heating rate up to the maximum
     if (Temp < Tf):
         Temp += tdiff*HR
-    print("temp " +str(Temp))
 
     
 
