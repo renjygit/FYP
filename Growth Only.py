@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Feb  2 13:30:13 2023
-
-@author: BWCoo
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 import statistics as stats
@@ -68,20 +61,17 @@ SSArray = [SS]
 NArraysArray = [[]]
 NConc = 60e-6 # moles of nanocrystals initially
 NNum = NConc * NA # number of nanocrystals initially
-print("NNum = " + str(NNum))
+
 # Create an initial distribution of nanoparticles (to analyse growth stage)
 sum = 0
 for r in rBins:
     g = NNum * (1 / (1e-10 * np.sqrt((2*np.pi)))) * np.exp(-0.5*(np.power((r - 1e-9)/(1e-10), 2))) # distribution with mean radius 1*10^-9 standard deviation of 10%
     sum+=g*rdiff # check probabilities sum to NNum (approx)
-    #print(g)
     NArraysArray[0].append(g) # g going to 0 for all r
 print("sum " + str(sum))
-#print(NArraysArray[0])
+
 # Define avg array
-#NArraysArray = [[0] * len(rBins)]
 NArrayAvgR = [stats.fmean(NArraysArray[0])]
-    
 #print("initial N array " + str(NArraysArray[0]))
 
 
@@ -93,28 +83,21 @@ for time in timeArray: #start at timestep tdiff not 0
     
     # Calculate critical radius (for comparison purposes)
     rCrit = (2*gamma*VmMolar) / (R*Temp*np.log(SS))
-    print("rCrit " + str(rCrit))
+    #print("rCrit " + str(rCrit))
     
+    # Plot the current size distribution
     plt.plot(rBins, NArraysArray[0])
     plt.title("Nanoparticle radius distribution t = " + str(time-tdiff))
     plt.plot(rCrit,0.1e29,'ro')
     plt.show()
-    
-    """
-    # Calculate the change to the precursor population and add the result to an array
-    Ppop -= A*np.exp(-PMEa/(R*Temp)) * Ppop * tdiff
-    PPopArray.append(Ppop)
-    """
 
     
-    # De-dimensionalised values
+    # Calculate de-dimensionalised values
     phi = (R * Temp) / (2 * gamma *VmMolar)
-    print("phi = " + str(phi))
-    """
     psi = phi**2 * D * Vm * MInf
-    Damkohler = (D * phi) / kr
+    zeta = 1e-3 #(D * phi) / kr
     tau = time * psi
-    """
+
 
     # Add a new empty array to N array to hold newly calculated values.
     NArraysArray.append([])
@@ -127,7 +110,6 @@ for time in timeArray: #start at timestep tdiff not 0
     for r in rBins:
         rCount += 1 # Keep track of number of radius iterations
         
-        #beta = r * phi # de-dimensionalised radius
         
         Nprime = NArraysArray[0][rCount] + 0 # 0 for diffusion case
         #print("Nprime " + str(Nprime))
@@ -158,25 +140,25 @@ for time in timeArray: #start at timestep tdiff not 0
                 NHalfNegList.append(NHalfNeg)
                 #print("NHalfPos  " + str(NHalfPos))
                 
-        
+        # Find beta +1/2 and -1/2 values (de-dimensionalise r)
+        betaPos = (r+0.5*rdiff) * phi # de-dimensionalised radius
+        betaNeg = (r-0.5*rdiff) * phi # de-dimensionalised radius
+
         # Calculate the growth rates at radii (i+1/2) and (i-1/2)
-        growthRatepos = -(D * VmMolar * SS * (1-np.exp((2*gamma*VmMolar)/((r+0.5*rdiff)*R*Temp)))) / ((r+0.5*rdiff) + (Damkohler/phi)) # Find growth rate for i+1/2, i.e. current radius plus half a step
-        growthRateneg = -(D * VmMolar * SS * (1-np.exp((2*gamma*VmMolar)/((r-0.5*rdiff)*R*Temp)))) / ((r-0.5*rdiff) + (Damkohler/phi)) # Find growth rate for i-1/2, i.e. current radius minus half a step
-        #print("r " + str(r))
-        #print("growthRatepos exponent " + str((2*gamma*VmMolar)/((r+0.5*rdiff)*R*Temp)))
-        #print("growthRatepos e " + str(np.exp((2*gamma*VmMolar)/((r+0.5*rdiff)*R*Temp))))
-        #print("growthRatepos 1-e " + str(1-np.exp((2*gamma*VmMolar)/((r+0.5*rdiff)*R*Temp))))
-        #print("growthRatepos  " + str(growthRatepos))
+        growthRatePosDD = (SS - np.exp(1/betaPos))/(betaPos + zeta)
+        growthRatePos = growthRatePosDD * (psi/phi)
+        growthRateNegDD = (SS - np.exp(1/betaNeg))/(betaNeg + zeta)
+        growthRateNeg = growthRateNegDD * (psi/phi)
             
         # Check Courant condition - just prints warning at present
-        if (np.abs(growthRatepos) * tdiff/rdiff) > 1 or (np.abs(growthRateneg) * tdiff/rdiff) >1:
+        if (np.abs(growthRatePos) * tdiff/rdiff) > 1 or (np.abs(growthRateNeg) * tdiff/rdiff) >1:
             print("Courant condition not satisfied.")
-            print("Courant value for growthratepos " + str(np.abs(growthRatepos) * tdiff/rdiff))
-            print("Courant value for growthrateneg " + str(np.abs(growthRateneg) * tdiff/rdiff))
+            print("Courant value for growthratepos " + str(np.abs(growthRatePos) * tdiff/rdiff))
+            print("Courant value for growthrateneg " + str(np.abs(growthRateNeg) * tdiff/rdiff))
             sys.exit()        
         
         # Calculate new N & add to the array
-        NNew = Nprime - (tdiff/rdiff) * ((growthRatepos*NHalfPos) - (growthRateneg*NHalfNeg)) # Calculate new N, i.e. N for time (k+1)
+        NNew = Nprime - (tdiff/rdiff) * ((growthRatePos*NHalfPos) - (growthRateNeg*NHalfNeg)) # Calculate new N, i.e. N for time (k+1)
         NArraysArray[1].append(NNew)
         #print("Narraysarray second element " + str(NArraysArray[1][1]))
         #print("   ")
