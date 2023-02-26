@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Feb 13 13:16:23 2023
-
-@author: BWCoo
-"""
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -34,7 +28,8 @@ Temp = 500
 # Setting the radius bins
 rdiff =  3e-11 #0.3 Angstroms
 rmax = 8.1e-9
-rBins = np.linspace(0.5e-9, rmax,int(rmax/rdiff))
+rmin = 0.5e-9
+rBins = np.linspace(rmin, rmax,int((rmax-rmin+rdiff)/rdiff))
 
 # Create empty array to hold growth rate values
 growthRateListList = []
@@ -58,47 +53,74 @@ phi = (R*Temp)/(2*gamma*VmMolar)
 psi = (phi**2)*D*VmMolar*MInf
 #beta = r*phi
 #tau = t*psi
-    
-GR = []
-DGR = []
+
 SSCount = -1
 #
 for SS in SSBinsList:
     SSCount += 1
     growthRateListList.append([])
     for r in rBins:
-    
+
         #sort out dimensionless rad
         beta = r*phi
-        
+
         #now sort out growth rate
         growthRate = (SS - np.exp(1/beta))/(beta + zeta)
         dimGrowthRate = growthRate*(psi/phi)
-        
-        #GR.append(growthRate)
-        #DGR.append(dimGrowthRate)
-        
+
         growthRateListList[SSCount].append(dimGrowthRate)
 
-'''
-#use following for plotting INDIVIDUAL plots (will only do last if loop is active)
-#to check dimensionless (GR) and dimensional (DGR) growth rates
-
-plt.plot(rBins, GR)
-plt.yscale('symlog')
-plt.show
-
-plt.plot(rBins, DGR)
-plt.yscale('symlog')
-plt.show
-'''
 
 # Plot growth rate against radius
 for n in np.linspace(0,SSCount,(SSCount+1)):
     #fig = plt.figure()
     #plt.subplot(2, 1, 1)
     plt.plot(rBins, growthRateListList[int(n)], label = "Supersaturation = " + str(SSBinsList[int(n)]))
+
+plt.xlabel("Radius")
+plt.ylabel("Instantaneous Growth Rate")
+plt.axhline(y=0, color='black', ls='--')
+plt.legend()
+plt.yscale('symlog')
+plt.ylim(-1*10**(-6), 2*10**(-6))
+plt.show()
+
+# Produce second plot, for varying gamma values.
+rmax = 8.1e-9
+rmin = 0.2e-9
+rBins = np.linspace(rmin, rmax,int((rmax-rmin+rdiff)/rdiff))
+# Create empty array to hold growth rate values
+growthRateListList = []
+
+# Create gamma bins to iterate through
+gammaBinsList = [0.075,0.1,0.15,0.2,0.5,1.]
+# Set supersaturation and Damkohler number values
+SS = 100
+zeta = 1
+gammaCount = -1
+#
+for gamma in gammaBinsList:
+    gammaCount += 1
     
+    phi = (R*Temp)/(2*gamma*VmMolar)
+    psi = (phi**2)*D*VmMolar*MInf
+    
+    growthRateListList.append([])
+    for r in rBins:
+        
+        #sort out dimensionless rad
+        beta = r*phi
+
+        #now sort out growth rate
+        growthRate = (SS - np.exp(1/beta))/(beta + zeta)
+        dimGrowthRate = growthRate*(psi/phi)
+                
+        growthRateListList[gammaCount].append(dimGrowthRate)
+
+# Plot growth rate against radius
+for n in np.linspace(0,gammaCount,(gammaCount+1)):
+    plt.plot(rBins, growthRateListList[int(n)], label = "gamma = " + str(gammaBinsList[int(n)]))
+
 plt.xlabel("Radius")
 plt.ylabel("Instantaneous Growth Rate")
 plt.axhline(y=0, color='black', ls='--')
@@ -108,81 +130,53 @@ plt.ylim(-1*10**(-6), 2*10**(-6))
 plt.show()
     
     
-'''
-
-# Produce second plot, for varying gamma values.
-
-# Create empty array to hold growth rate values
-growthRateListList = []
-
-
-# Create gamma bins to iterate through
-gammaBinsList = np.linspace(0.075, 1, 6)
-
-# Set supersaturation and Damkohler number values
-SS = 100
-damkohler = 1
-
-gammaCount = -1
-#
-for gamma in gammaBinsList:
-    gammaCount += 1
-    growthRateListList.append([])
-    for r in rBins:
-        growthRate = (D * VmMolar * SS * (1-np.exp((2*gamma*VmMolar)/((r)*R*Temp)))) / ((r) + damkohler)
-        growthRateListList[gammaCount].append(growthRate)
-
-# Plot growth rate against radius
-for n in np.linspace(0,gammaCount,(gammaCount+1)):
-    plt.plot(rBins, growthRateListList[int(n)], label = "gamma = " + str(gammaBinsList[int(n)]))
-    plt.xlabel("Radius")
-    plt.ylabel("Instantaneous Growth Rate")
-    plt.yscale('symlog')
-    plt.axhline(y=0, color='black')
-    plt.legend()
-    plt.show()
-
-
-
-
+    
 
 # Produce third plot, for varying Damkohler numbers.
+
+# Set the radius bins
+rmax = 8.1e-9
+rmin = 0.5e-9
+rBins = np.linspace(rmin, rmax,int((rmax-rmin+rdiff)/rdiff))
 
 # Create empty array to hold growth rate values
 growthRateListList = []
 
 # Create Damkohler bins to iterate through
-damkohlerBinsList = [0.001, 0.01,0.1,1,10,100,1000]
-
+zetaBinsList = [0.001, 0.01,0.1,1,10,100,1000]
 # Set supersaturation and gamma values
 SS = 100
 gamma = 0.2
 
-damkohlerCount = -1
+phi = (R*Temp)/(2*gamma*VmMolar)
+psi = (phi**2)*D*VmMolar*MInf
+
+zetaCount = -1
 #
-for damkohler in damkohlerBinsList:
-    damkohlerCount += 1
+for zeta in zetaBinsList:
+    zetaCount += 1
+    
     growthRateListList.append([])
     for r in rBins:
-        #print(np.exp((2*gamma*VmMolar)/((r)*R*Temp)))
-        growthRate = (D * VmMolar * SS * (1-np.exp((2*gamma*VmMolar)/(r*R*Temp)))) / ((r) + damkohler)
 
-        
-#        print("r " + str(r))
-#        print("growthRatepos exponent " + str((2*gamma*VmMolar)/(r*R*Temp)))
-#        print("growthRatepos e " + str(np.exp((2*gamma*VmMolar)/(r*R*Temp))))
-#        print("growthRatepos 1-e " + str((1-np.exp((2*gamma*VmMolar)/(r*R*Temp)))))
-#        growthRateListList[damkohlerCount].append(growthRate)
+        #sort out dimensionless rad
+        beta = r*phi
+
+        #now sort out growth rate
+        growthRate = (SS - np.exp(1/beta))/(beta + zeta)
+        dimGrowthRate = growthRate*(psi/phi)
+                
+        growthRateListList[zetaCount].append(dimGrowthRate)
 
 
 # Plot the growth rate against radius
-for n in np.linspace(0,damkohlerCount,(damkohlerCount+1)):
-    plt.plot(rBins, growthRateListList[int(n)], label = "damkohler = " + str(damkohlerBinsList[int(n)]))
-    plt.yscale('symlog')
-    plt.xlabel("Radius")
-    plt.ylabel("Instantaneous Growth Rate")
-    plt.axhline(y=0, color='black')
-    plt.legend()
-    plt.show()
-    
-'''
+for n in np.linspace(0,zetaCount,(zetaCount+1)):
+    plt.plot(rBins, growthRateListList[int(n)], label = "zeta = " + str(zetaBinsList[int(n)]))
+
+plt.xlabel("Radius")
+plt.ylabel("Instantaneous Growth Rate")
+plt.axhline(y=0, color='black', ls='--')
+plt.legend()
+plt.yscale('symlog')
+plt.ylim(1*10**(-12), 5*10**(-6))
+plt.show()
