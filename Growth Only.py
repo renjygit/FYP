@@ -11,9 +11,8 @@ def vanLeerFunc(X):
 
 # Define required constants
 A = 4e3
-PMEa = 4.5e4 # J mol^-1
 R = 8.314
-VmMolar = 1.65e-5 # m^3 mol^-1, molar volume of monomer
+VmMolar = 3.2996e-5 # m^3 mol^-1, molar volume of monomer
 rmMolar = (3/4*np.pi) * pow(VmMolar, 1/3) # effective radius of monomer (from the molar volume)
 rm = 1.87e-10
 Vm = (4/3)*np.pi*pow(rm,3)
@@ -26,13 +25,13 @@ gamma = 0.2 #0.4 # J m^-2
 kB = 1.38e-23
 k = 1e12 # J mol^-1 m^-1 distribution exponent constant
 kr = 1.6e-9
-Damkohler = 2e3 # 1e-3 # can change up to 2000
-density = 5.8e3 # kg m^-3
+density = 5.816e3 # kg m^-3
 MW = 0.096 # kg mol^-1
 Q = (4*np.pi*density) / (3 * MW * Vtot * MInf)
+print(Q)
 
 # Define time bins
-tmax = 0.5e-3 # 3600
+tmax = 0.5e-5 # 3600
 tdiff = 1e-6 #1e-3
 timeArray = np.linspace(tdiff, tmax, int(tmax/tdiff))
 timeCount = 0
@@ -49,15 +48,11 @@ Temp = 503 #Temp = 453
 Tf = 567
 HR = 0.025 # K s^-1 (1.5 K min^-1)
 
-# Define precursor population variable & array
-Ppop = 1e24 # change
-PPopArray = [Ppop]
-
 # Define supersaturation population variable & array
 SS = 5e2
 SSArray = [SS]
 
-# Define nuclei arrays
+# Define nuclei array
 NArraysArray = [[]]
 NConc = 60e-6 # moles of nanocrystals initially
 NNum = NConc * NA # number of nanocrystals initially
@@ -94,7 +89,7 @@ for time in timeArray: #start at timestep tdiff not 0
     
     # Calculate de-dimensionalised values
     phi = (R * Temp) / (2 * gamma *VmMolar)
-    psi = phi**2 * D * Vm * MInf
+    psi = phi**2 * D * VmMolar * MInf
     zeta = 1e-3 #(D * phi) / kr
     tau = time * psi
 
@@ -110,6 +105,7 @@ for time in timeArray: #start at timestep tdiff not 0
     for r in rBins:
         rCount += 1 # Keep track of number of radius iterations
         
+        #print("radius = " + str(r))
         
         Nprime = NArraysArray[0][rCount] + 0 # 0 for diffusion case
         #print("Nprime " + str(Nprime))
@@ -143,12 +139,19 @@ for time in timeArray: #start at timestep tdiff not 0
         # Find beta +1/2 and -1/2 values (de-dimensionalise r)
         betaPos = (r+0.5*rdiff) * phi # de-dimensionalised radius
         betaNeg = (r-0.5*rdiff) * phi # de-dimensionalised radius
+        #print("betaPos = " + str(betaPos))
+        #print("betaNeg = " + str(betaNeg))
+        #print("phi = " + str(phi))
+        #print("psi  = " + str(psi))
 
         # Calculate the growth rates at radii (i+1/2) and (i-1/2)
         growthRatePosDD = (SS - np.exp(1/betaPos))/(betaPos + zeta)
         growthRatePos = growthRatePosDD * (psi/phi)
         growthRateNegDD = (SS - np.exp(1/betaNeg))/(betaNeg + zeta)
         growthRateNeg = growthRateNegDD * (psi/phi)
+        print("growthRatePos = " + str(growthRatePos))
+        print("growthRateNeg = " + str(growthRateNeg))
+
             
         # Check Courant condition - just prints warning at present
         if (np.abs(growthRatePos) * tdiff/rdiff) > 1 or (np.abs(growthRateNeg) * tdiff/rdiff) >1:
@@ -158,10 +161,12 @@ for time in timeArray: #start at timestep tdiff not 0
             sys.exit()        
         
         # Calculate new N & add to the array
+        #print("NOld = " + str(NArraysArray[0][rCount]))
+        #print("NPrime = " + str(Nprime))
+        #print("Nchange = " + str((tdiff/rdiff) * ((growthRatePos*NHalfPos) - (growthRateNeg*NHalfNeg))))
         NNew = Nprime - (tdiff/rdiff) * ((growthRatePos*NHalfPos) - (growthRateNeg*NHalfNeg)) # Calculate new N, i.e. N for time (k+1)
+        #print("NNew = " + str(NNew))
         NArraysArray[1].append(NNew)
-        #print("Narraysarray second element " + str(NArraysArray[1][1]))
-        #print("   ")
 
         #Calculate element of SS integral for current r & add to array
         SSIntegralElement = pow(r,3) * (NArraysArray[1][rCount] - NArraysArray[0][rCount])
@@ -182,15 +187,10 @@ for time in timeArray: #start at timestep tdiff not 0
     #print(NArraysArray)
     del NArraysArray[0]
     #print(NArraysArray)
-
-    """
-    # Calculate molar precursor concentration
-    PConc = Ppop / (Vtot * NA)
-    """
     
     print("sum of ss array = " + str(np.sum(SSSumsArray)))
     # Calculate SS value for this timestep & add to array
-    SS += - (Q * np.sum(SSSumsArray)) # Sum all integral element values to approximate the integral, no precursor part for growth (just have an initial pop of monomer)
+    SS -= (Q * np.sum(SSSumsArray)) # Sum all integral element values to approximate the integral, no precursor part for growth (just have an initial pop of monomer)
     SSArray.append(SS)
     print("SS " + str(SS))
     #print("   ")
@@ -214,6 +214,7 @@ plt.show()
 
 plt.plot(rBins, NArraysArray[0])
 plt.title("Final nanoparticle size distribution")
+plt.plot(rCrit,0.1e29,'ro')
 plt.show()
 
 # Plot supersaturation against time
