@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Feb 13 10:54:17 2023
-
-@author: BWCoo
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 import statistics as stats
@@ -17,9 +10,9 @@ rm = 1.87e-10
 Vm = (4/3)*np.pi*pow(rm,3)
 D = 1e-10
 NA = 6.022e23
-MInf = 0.1 #mol m^-3 #
-u = 0.42 # coagulation parameter
-gamma = 0.4 # J m^-2
+MInf = 1e-3 #mol m^-3 #
+u = 0.46 # coagulation parameter
+gamma = 0.6 # J m^-2
 kB = 1.38e-23
 
 
@@ -82,7 +75,7 @@ SSBinsList = np.linspace(1, 20000, 20000)
 # Produce first plot, for varying temperatures:
 
 # Create temperature bins to iterate through    
-tempBinsList = np.linspace(373,573,5)
+tempBinsList = [373,423,473,523,573]
 
 # Create empty arrays to hold values to plot later
 RNucListList = []
@@ -107,10 +100,10 @@ for Temp in tempBinsList:
         
         Rnuc = 8*np.pi*rm*D*NA * pow(SS, (p*u+1)) * pow(MInf, 2) * np.exp((-4*np.pi*pow(rCrit, 2)*gamma)/(3*kB*Temp)) #Need actual value of rm not molar value
         
-        print("SS^(pu+1) " + str(pow(SS, (p*u+1))))
-        print("exp((-4*np.pi*pow(rCrit, 2)*gamma)/(3*kB*Temp)) " + str(np.exp((-4*np.pi*pow(rCrit, 2)*gamma)/(3*kB*Temp))))
+        #print("SS^(pu+1) " + str(pow(SS, (p*u+1))))
+        #print("exp((-4*np.pi*pow(rCrit, 2)*gamma)/(3*kB*Temp)) " + str(np.exp((-4*np.pi*pow(rCrit, 2)*gamma)/(3*kB*Temp))))
         
-        RNucListList[tempCount].append(Rnuc)
+        RNucListList[tempCount].append(Rnuc*NA)
         
         #lnRnuc = np.log(8*np.pi*rm*D*NA) + (p*u+1) * np.log(SS) * 2*np.log(MInf)  - ((4*np.pi*np.power(rCrit, 2)*gamma)/(3*kB*Temp)) #Need actual value of rm not molar value
 
@@ -122,6 +115,7 @@ for n in np.linspace(0,tempCount,(tempCount+1)):
     #plt.plot(SSBinsList, pListList[int(n)], label="Temperature = " + str(tempBinsList[int(n)]))
 plt.xlabel("Supersaturation")
 plt.ylabel("Nucleation rate or p")
+plt.yscale('log')
 plt.legend()
 plt.show()
 
@@ -132,7 +126,7 @@ plt.show()
 # Produce second plot, for varying gamma values.
 
 # Create gamma bins to iterate through
-gammaBinsList = np.linspace(0.075, 1, 6)
+gammaBinsList = [0.2,0.4,0.6,0.8,1.0]
 
 # Create empty arrays to hold values to plot later
 RNucListList = []
@@ -160,7 +154,7 @@ for gamma in gammaBinsList:
         #print("SS^(pu+1) " + str(pow(SS, (p*u+1))))
         #print("exp((-4*np.pi*pow(rCrit, 2)*gamma)/(3*kB*Temp)) " + str(np.exp((-4*np.pi*pow(rCrit, 2)*gamma)/(3*kB*Temp))))
         
-        RNucListList[gammaCount].append(Rnuc)
+        RNucListList[gammaCount].append(Rnuc*NA)
         
         #lnRnuc = np.log(8*np.pi*rm*D*NA) + (p*u+1) * np.log(SS) * 2*np.log(MInf)  - ((4*np.pi*np.power(rCrit, 2)*gamma)/(3*kB*Temp)) #Need actual value of rm not molar value
 
@@ -172,6 +166,7 @@ for n in np.linspace(0,gammaCount,(gammaCount+1)):
     #plt.plot(SSBinsList, pListList[int(n)], label="gamma " + str(gammaBinsList[int(n)]))
 plt.xlabel("Supersaturation")
 plt.ylabel("Nucleation rate or p")
+plt.yscale('log')
 plt.legend()
 
 plt.show()
