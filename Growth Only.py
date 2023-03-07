@@ -1,134 +1,128 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import statistics as stats
 import sys
 
-# Define the Van Leer flux limiter function
+# Define the van Leer flux limiter function
 def vanLeerFunc(X):
-    #print((X + np.abs(X)) / (1 + X))
     return (X + np.abs(X)) / (1 + X)
 
-
 # Define required constants
-A = 4e3
 R = 8.314
+kB = 1.38e-23
 NA = 6.022e23
-VmMolar = 3.2996e-5 # m^3 mol^-1, molar volume of monomer
-rmMolar = (3/4*np.pi) * pow(VmMolar, 1/3) # effective radius of monomer (from the molar volume)
-Vm = VmMolar / NA #(4/3)*np.pi*pow(rm,3)
-rm = pow((3*Vm) / (4*np.pi), (1/3)) #1.87e-10
+A = 4e3
+VmMolar = 3.2996e-5 # m^3 mol^-1 - molar volume of monomer
+rmMolar = (3/4*np.pi) * pow(VmMolar, 1/3)
+Vm = VmMolar / NA # (4/3)*np.pi*pow(rm,3)
+rm = pow((3*Vm) / (4*np.pi), (1/3)) # 1.87e-10
 D = 1e-12
 Vtot = 1e-4 #0.0252-3 # m^3
 MInf = 1e-2 #mol m^-3 #
 u = 0.42 # coagulation parameter
-gamma = 0.2 #0.4 # J m^-2
-kB = 1.38e-23
-k = 1e12 # J mola^-1 m^-1 distribution exponent constant
+gamma = 0.2 #0.4 # J m^-2 - surface energy
+k = 1e12 # J mol^-1 m^-1 - constant in the exponent of the distribution function
 kr = 1.6e-9
 density = 5.816e3 # kg m^-3
-MW = 0.09586 # kg mol^-1
+MW = 0.09586 # kg mol^-1 - monomeric molecular weight
 Q = (4*np.pi*density) / (3 * MW * Vtot * MInf)
 
-# Define time bins
-tmax = 0.1 # 3600
-tdiff = 0.9e-5 #1e-3
-tmin = 0
+# Define timesteps to iterate through & create an array
+tmax = 0.1 # s
+tdiff = 0.9e-5
+tmin = tdiff
 timeArray = np.linspace(tdiff, tmax, int((tmax-tmin+tdiff)/tdiff))
-timeCount = 0
+timeCount = 0 # Used to track number of time iterations
 
 
 # Define radius bins
-rdiff =  3e-11 #0.3 Angstroms
-rmax = 8e-9 # 8.1e-9
+rdiff =  3e-11 # m
+rmax = 8.1e-9
 rmin = 4e-10
 rBins = np.linspace(rmin,rmax,int((rmax-rmin+rdiff)/rdiff))
 
-# Define temp variable & heating rate
-Temp = 503 #Temp = 453
+# Define temperature variable & heating rate
+Temp = 503 # 453
 Tf = 567
 HR = 0.025 # K s^-1 (1.5 K min^-1)
 
-# Define supersaturation population variable & array
+# Define supersaturation variable & array
 SS = 5e2
 SSArray = [SS]
 
-# Define nuclei array
+# Create an array of arrays to hold number of nuclei in each radius bin for different timesteps
 NArraysArray = [[]]
-NNumMole = 60e-6 # moles of nanocrystals initially
-NNum = NNumMole * NA # number of nanocrystals initially
-print(NNum)
+# Give number of nanopartices initially
+NNumMole = 60e-6 # mol
+NNum = NNumMole * NA # number
+print("Initial number of nanoparticles = " + str(NNum))
 
+# Create the input distribution of nanoparticles
 distributionArray = []
-# Create an initial distribution of nanoparticles (to analyse growth stage)
 sum = 0
 for r in rBins:
-    g = (1 / (1e-10 * np.sqrt((2*np.pi)))) * np.exp(-0.5*(np.power((r - 1e-9)/(1e-10), 2))) # distribution with mean radius 1*10^-9 standard deviation of 10%
+    g = (1 / (1e-10 * np.sqrt((2*np.pi)))) * np.exp(-0.5*(np.power((r - 1e-9)/(1e-10), 2))) # Normal distribution with mean radius 1e-9 m & standard deviation 1e-10 m
     gN = NNum * g * rdiff
-    sum += gN # check probabilities sum to NNum (approx)
+    
+    sum += gN # Calculated to check this sums to NNum (approximately)
+    
     distributionArray.append(g)
-    NArraysArray[0].append(gN) # g going to 0 for all r
-print("sum " + str(sum))
+    NArraysArray[0].append(gN)
+print("Sum of nanoparticles in initial distribution = " + str(sum))
+
+# Plot the initial probability density function
 plt.plot(rBins, distributionArray)
 plt.title("Nanoparticle radius distribution t = 0")
 plt.ylim(0, 4.5e9)
-#plt.plot(rCrit,0.1e-6,'ro')
 plt.show()
+
+# Plot the initial distribution of nanoparticles
 plt.plot(rBins, NArraysArray[0])
 plt.title("Nanoparticles number against radius at t = 0")
 plt.ylim(0, 4.5e18)
 plt.show()
 
-
-# Define avg array
+# Create an array to hold the mean radius values
 NArrayAvgR = [np.average(rBins, weights = NArraysArray[0])]
-#print("initial N array " + str(NArraysArray[0]))
-
+print("Initial avg N = " + str(NArrayAvgR[0]))
 
 # Main loop steps forward in time
-for time in timeArray: #start at timestep tdiff not 0
-    timeCount +=1 # Keep track of number of time iterations
-    #print(timeCount)
+for time in timeArray:
+    timeCount += 1
+
     #print("temp " +str(Temp))
     
-    # Calculate critical radius (for comparison purposes)
+    # Calculate the critical radius
     rCrit = (2*gamma*VmMolar) / (R*Temp*np.log(SS))
-    #print("rCrit " + str(rCrit))
     
+    # Plot the nanoparticle distribution every few hundred iterations
     if timeCount % 400 == 0:
-        # Plot the current size distribution
-        distributionArray = []
         plt.plot(rBins, NArraysArray[0])
-        plt.title("Nanoparticles number against radius at t = " + f'{(time-tdiff):.3g}') # -tdiff since we are actually plotting the graph from the previous timestep
+        plt.title("Nanoparticles number against radius at t = " + f'{(time-tdiff):.3g}') # Take away tdiff since we are actually plotting the graph from the previous here
         plt.ylim(0, 4.5e18)
         plt.plot(rCrit,1e9,'ro')
         plt.show()
     
-    
-    # Calculate de-dimensionalised values
+    # Calculate the de-dimensionalised variables
     phi = (R * Temp) / (2 * gamma *VmMolar)
     psi = phi**2 * D * VmMolar * MInf
-    zeta = 1e-3 #(D * phi) / kr
+    zeta = 1e-3 # (D * phi) / kr
     tau = time * psi
-    
 
-
-    # Add a new empty array to N array to hold newly calculated values.
+    # Add a new empty array to the N array of arrays to hold the newly calculated N values
     NArraysArray.append([])
-    # Create empty array for SS integral elements (resets each iteration)
+    # Create empty arrays for the SS integral elements and the N values at radii values of (i+1/2) and (i-1/2) (reset each time iteration)
     SSSumsArray = []
     NHalfPosList = []
     NHalfNegList = []
     
-    rCount = -1 # Keep track of number of radius iterations
+    rCount = -1 # Keep track of the number of radius iterations (resets each time iteration)
     for r in rBins:
-        rCount += 1 # Keep track of number of radius iterations
+        rCount += 1
         
-        #print("radius = " + str(r))
+        # Calculate the intermediate value of N, i.e. the nucleated N (for this radius value)
+        Nprime = NArraysArray[0][rCount] + 0 # This adds 0 for the growth only case, since there is no nucleation
         
-        Nprime = NArraysArray[0][rCount] + 0 # 0 for diffusion case
-        #print("Nprime " + str(Nprime))
-        
-        # Set N to 0 for end cases since deltapos/neg need (i+1) or (i-1) values of radius, which don't exist at the boundaries.
+        # Deltapos & deltaneg use number of nanoparticles at radii (i+1) & (i-1), which don't exist at the boundaries, so set NHalfPos and NHalfNeg to previous N for these edge cases
         if r == rBins[0] or r == rBins[len(rBins) - 1]:
             NHalfPos = NArraysArray[0][rCount]
             NHalfNeg = NArraysArray[0][rCount]
@@ -138,40 +132,31 @@ for time in timeArray: #start at timestep tdiff not 0
             # Calculate deltapos and deltaneg
             deltapos = NArraysArray[0][rCount+1] - NArraysArray[0][rCount]
             deltaneg = NArraysArray[0][rCount] - NArraysArray[0][rCount-1]
-            #print("deltapos " + str(deltapos))
             
-            # If either delta = 0 one or both of their ratios will diverge, so need a condition to avoid this.
+            # If one or both of the deltas = 0, one or both of their ratios will diverge, so include a condition to avoid this
             if deltapos == 0 or deltaneg == 0:
-                NHalfPos = NArraysArray[0][rCount]
+                NHalfPos = NArraysArray[0][rCount] # Set NHalfPos and NHalfNeg values equal to the previous N value
                 NHalfNeg = NArraysArray[0][rCount]
                 NHalfPosList.append(NHalfPos)
                 NHalfNegList.append(NHalfNeg)
             else:
-                # Calculate N at radii sizes (i+1/2) and (i-1/2) using van Leer
+                # Calculate NHalfPos and NHalfNeg using the van Leer function
                 NHalfPos = NArraysArray[0][rCount] + 0.5*vanLeerFunc(deltapos/deltaneg)*deltaneg
                 NHalfPosList.append(NHalfPos)
                 NHalfNeg = NArraysArray[0][rCount] - 0.5*vanLeerFunc(deltaneg/deltapos)*deltapos
                 NHalfNegList.append(NHalfNeg)
-                #print("NHalfPos  " + str(NHalfPos))
                 
-        # Find beta +1/2 and -1/2 values (de-dimensionalise r)
+        # Find beta values for radii values (i+1/2) and (i-1/2)
         betaPos = (r+0.5*rdiff) * phi # de-dimensionalised radius
         betaNeg = (r-0.5*rdiff) * phi # de-dimensionalised radius
-        #print("betaPos = " + str(betaPos))
-        #print("betaNeg = " + str(betaNeg))
-        #print("phi = " + str(phi))
-        #print("psi  = " + str(psi))
 
-        # Calculate the growth rates at radii (i+1/2) and (i-1/2)
-        growthRatePosDD = (SS - np.exp(1/betaPos))/(betaPos + zeta)
-        growthRatePos = growthRatePosDD * (psi/phi)
-        growthRateNegDD = (SS - np.exp(1/betaNeg))/(betaNeg + zeta)
-        growthRateNeg = growthRateNegDD * (psi/phi)
-        #print("growthRatePos = " + str(growthRatePos))
-        #print("growthRateNeg = " + str(growthRateNeg))
-
+        # Calculate the growth rates using these beta values & then redimensionalise them
+        growthRatePosDD = (SS - np.exp(1/betaPos))/(betaPos + zeta) # De-dimensionalised
+        growthRateNegDD = (SS - np.exp(1/betaNeg))/(betaNeg + zeta) # De-dimensionalised
+        growthRatePos = growthRatePosDD * (psi/phi) # Re-dimensionalised
+        growthRateNeg = growthRateNegDD * (psi/phi) # Re-dimensionalised
             
-        # Check Courant condition - just prints warning at present
+        # Check Courant condition & stop the program if not satisfied
         if (np.abs(growthRatePos) * tdiff/rdiff) > 1 or (np.abs(growthRateNeg) * tdiff/rdiff) >1:
             print("Courant condition not satisfied.")
             print("Courant value for growthratepos " + str(np.abs(growthRatePos) * tdiff/rdiff))
@@ -179,44 +164,27 @@ for time in timeArray: #start at timestep tdiff not 0
             sys.exit()        
         
         # Calculate new N & add to the array
-        #print("NOld = " + str(NArraysArray[0][rCount]))
-        #print("NPrime = " + str(Nprime))
-        #print("Nchange = " + str((tdiff/rdiff) * ((growthRatePos*NHalfPos) - (growthRateNeg*NHalfNeg))))
-        NNew = Nprime - (tdiff/rdiff) * ((growthRatePos*NHalfPos) - (growthRateNeg*NHalfNeg)) # Calculate new N, i.e. N for time (k+1)
-        #print("NNew = " + str(NNew))
+        NNew = Nprime - (tdiff/rdiff) * ((growthRatePos*NHalfPos) - (growthRateNeg*NHalfNeg)) # Calculate new N, i.e. N for current timestep
         NArraysArray[1].append(NNew)
 
-        #Calculate element of SS integral for current r & add to array
+        # Calculate element of SS integral for current r & add to array
         SSIntegralElement = pow(r,3) * (NArraysArray[1][rCount] - NArraysArray[0][rCount])
         SSSumsArray.append(SSIntegralElement)
         #print("Q * r^3 = " + str(Q*pow(r,3)))
         #print("SS Element = " + str(SSIntegralElement))
-                
-
-    #plt.plot(rBins, NHalfPosList)
-    #plt.title("NHalfPos at t = " + str(time))
-    #plt.show()
-    #plt.plot(rBins, NHalfNegList)
-    #plt.title("NHalfNeg at t = " + str(time))
-    #plt.show()
     
-    # Add average radius of N to array
-    NArrayAvgR.append([np.average(rBins, weights = NArraysArray[1])])
+    # Add mean radius of N to the array
+    NArrayAvgR.append(np.average(rBins, weights = NArraysArray[1]))
     #print("Avg N radius = " + str(NArrayAvgR[timeCount]))
-    
-    
-    # Delete N array for previous timestep (to conserve memory since it is no longer needed)
-    #print(NArraysArray)
+     
+    # Delete N array for previous timestep (to conserve memory, since it is no longer needed)
     del NArraysArray[0]
-    #print(NArraysArray)
     
-    #print("sum of ss array = " + str(np.sum(SSSumsArray)))
-    # Calculate SS value for this timestep & add to array
-    SS -= (Q * np.sum(SSSumsArray)) # Sum all integral element values to approximate the integral, no precursor part for growth (just have an initial pop of monomer)
+    # Calculate SS value for this timestep & add to the array
+    SS -= (Q * np.sum(SSSumsArray)) # Sum all integral element values and multiply by Q to approximate the integral (no precursor part to consider for growth only case)
     SSArray.append(SS)
     #print("SS " + str(SS))
     #print("   ")
-    #print(NArraysArray[0])
     
     """
     # Increase the temperature by the heating rate up to the maximum
@@ -224,19 +192,25 @@ for time in timeArray: #start at timestep tdiff not 0
         Temp += tdiff*HR
     """
     
+# Create new time array to include t = 0
+timeArrayFull = np.linspace(0, tmax, int(((tmax-tmin+tdiff)/tdiff) + 1))
 
-timeArrayFull = np.linspace(0, tmax, int(((tmax-tmin+tdiff)/tdiff) + 1)) # Create new time array to include t = 0
-
-
+# Plot the final distribution of nanoparticles
 plt.plot(rBins, NArraysArray[0])
 plt.title("Final nanoparticle size distribution")
 plt.ylim(0, 4.5e18)
 plt.plot(rCrit,1e9,'ro')
 plt.show()
 
+print(NArrayAvgR)
+# Plot mean radius against time
+plt.plot(timeArrayFull, NArrayAvgR)
+plt.title("Mean radius against time")
+plt.xscale('log')
+plt.show()
 
 # Plot supersaturation against time
-plt.plot(timeArrayFull, SSArray, label="Heating rate = x K/min")
+plt.plot(timeArrayFull, SSArray)
 plt.title("Supersaturation against time")
 plt.xscale('log')
 plt.yscale('log')
