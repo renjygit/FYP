@@ -27,10 +27,10 @@ k = 1e12 # J mola^-1 m^-1 distribution exponent constant
 kr = 1.6e-9
 density = 5.816e3 # kg m^-3
 MW = 0.09586 # kg mol^-1
-Q = 0.03 #(4*np.pi*density) / (3 * MW * Vtot * MInf)
+Q = (4*np.pi*density) / (3 * MW * Vtot * MInf)
 
 # Define time bins
-tmax = 1e-1 # 3600
+tmax = 0.1 # 3600
 tdiff = 0.9e-5 #1e-3
 tmin = 0
 timeArray = np.linspace(tdiff, tmax, int((tmax-tmin+tdiff)/tdiff))
@@ -63,16 +63,21 @@ distributionArray = []
 sum = 0
 for r in rBins:
     g = (1 / (1e-10 * np.sqrt((2*np.pi)))) * np.exp(-0.5*(np.power((r - 1e-9)/(1e-10), 2))) # distribution with mean radius 1*10^-9 standard deviation of 10%
-    gNInt = NNum * g
-    sum+=gNInt*rdiff # check probabilities sum to NNum (approx)
+    gN = NNum * g * rdiff
+    sum += gN # check probabilities sum to NNum (approx)
     distributionArray.append(g)
-    NArraysArray[0].append(gNInt) # g going to 0 for all r
-NInt = sum
+    NArraysArray[0].append(gN) # g going to 0 for all r
 print("sum " + str(sum))
 plt.plot(rBins, distributionArray)
 plt.title("Nanoparticle radius distribution t = 0")
+plt.ylim(0, 4.5e9)
 #plt.plot(rCrit,0.1e-6,'ro')
 plt.show()
+plt.plot(rBins, NArraysArray[0])
+plt.title("Nanoparticles number against radius at t = 0")
+plt.ylim(0, 4.5e18)
+plt.show()
+
 
 # Define avg array
 NArrayAvgR = [np.average(rBins, weights = NArraysArray[0])]
@@ -83,7 +88,7 @@ NArrayAvgR = [np.average(rBins, weights = NArraysArray[0])]
 for time in timeArray: #start at timestep tdiff not 0
     timeCount +=1 # Keep track of number of time iterations
     #print(timeCount)
-    print("temp " +str(Temp))
+    #print("temp " +str(Temp))
     
     # Calculate critical radius (for comparison purposes)
     rCrit = (2*gamma*VmMolar) / (R*Temp*np.log(SS))
@@ -92,13 +97,10 @@ for time in timeArray: #start at timestep tdiff not 0
     if timeCount % 400 == 0:
         # Plot the current size distribution
         distributionArray = []
-        nCount = -1
-        for n in NArraysArray[0]:
-            nCount += 1
-            distributionArray.append(NArraysArray[0][nCount] / NInt)
-        plt.plot(rBins, distributionArray)
-        plt.title("Nanoparticle radius distribution t = " + str(time-tdiff))
-        plt.plot(rCrit,0.1e-6,'ro')
+        plt.plot(rBins, NArraysArray[0])
+        plt.title("Nanoparticles number against radius at t = " + f'{(time-tdiff):.3g}') # -tdiff since we are actually plotting the graph from the previous timestep
+        plt.ylim(0, 4.5e18)
+        plt.plot(rCrit,1e9,'ro')
         plt.show()
     
     
@@ -116,7 +118,6 @@ for time in timeArray: #start at timestep tdiff not 0
     SSSumsArray = []
     NHalfPosList = []
     NHalfNegList = []
-    NInt = 0
     
     rCount = -1 # Keep track of number of radius iterations
     for r in rBins:
@@ -190,9 +191,7 @@ for time in timeArray: #start at timestep tdiff not 0
         SSSumsArray.append(SSIntegralElement)
         #print("Q * r^3 = " + str(Q*pow(r,3)))
         #print("SS Element = " + str(SSIntegralElement))
-        
-        NInt += NArraysArray[1][rCount] * rdiff
-        
+                
 
     #plt.plot(rBins, NHalfPosList)
     #plt.title("NHalfPos at t = " + str(time))
@@ -203,7 +202,7 @@ for time in timeArray: #start at timestep tdiff not 0
     
     # Add average radius of N to array
     NArrayAvgR.append([np.average(rBins, weights = NArraysArray[1])])
-    print("Avg N radius = " + str(NArrayAvgR[timeCount]))
+    #print("Avg N radius = " + str(NArrayAvgR[timeCount]))
     
     
     # Delete N array for previous timestep (to conserve memory since it is no longer needed)
@@ -211,11 +210,11 @@ for time in timeArray: #start at timestep tdiff not 0
     del NArraysArray[0]
     #print(NArraysArray)
     
-    print("sum of ss array = " + str(np.sum(SSSumsArray)))
+    #print("sum of ss array = " + str(np.sum(SSSumsArray)))
     # Calculate SS value for this timestep & add to array
     SS -= (Q * np.sum(SSSumsArray)) # Sum all integral element values to approximate the integral, no precursor part for growth (just have an initial pop of monomer)
     SSArray.append(SS)
-    print("SS " + str(SS))
+    #print("SS " + str(SS))
     #print("   ")
     #print(NArraysArray[0])
     
@@ -231,7 +230,8 @@ timeArrayFull = np.linspace(0, tmax, int(((tmax-tmin+tdiff)/tdiff) + 1)) # Creat
 
 plt.plot(rBins, NArraysArray[0])
 plt.title("Final nanoparticle size distribution")
-plt.plot(rCrit,0.1e29,'ro')
+plt.ylim(0, 4.5e18)
+plt.plot(rCrit,1e9,'ro')
 plt.show()
 
 
