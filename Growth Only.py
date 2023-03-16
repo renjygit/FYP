@@ -16,7 +16,7 @@ rmMolar = (3/4*np.pi) * pow(VmMolar, 1/3)
 Vm = VmMolar / NA # (4/3)*np.pi*pow(rm,3)
 rm = pow((3*Vm) / (4*np.pi), (1/3)) # 1.87e-10
 D = 1e-12
-Vtot = 1e-4 #0.0252-3 # m^3
+Vtot = 5e-2 #0.0252-3 # m^3
 MInf = 1e-2 #mol m^-3 #
 u = 0.42 # coagulation parameter
 gamma = 0.2 #0.4 # J m^-2 - surface energy
@@ -27,7 +27,7 @@ MW = 0.09586 # kg mol^-1 - monomeric molecular weight
 Q = (4*np.pi*density) / (3 * MW * Vtot * MInf)
 
 # Define timesteps to iterate through & create an array
-tmax = 0.1 # s
+tmax = 1 # s
 tdiff = 0.9e-5
 tmin = tdiff
 timeArray = np.linspace(tdiff, tmax, int((tmax-tmin+tdiff)/tdiff))
@@ -51,13 +51,15 @@ SSArray = [SS]
 
 # Create an array of arrays to hold number of nuclei in each radius bin for different timesteps
 NArraysArray = [[]]
+
+NNumArray = [np.sum(NArraysArray[0])]
+
 # Give number of nanopartices initially
 NNumMole = 60e-6 # mol
 NNum = NNumMole * NA # number
 print("Initial number of nanoparticles = " + str(NNum))
 
 # Create the input distribution of nanoparticles
-distributionArray = []
 sum = 0
 for r in rBins:
     g = (1 / (1e-10 * np.sqrt((2*np.pi)))) * np.exp(-0.5*(np.power((r - 1e-9)/(1e-10), 2))) # Normal distribution with mean radius 1e-9 m & standard deviation 1e-10 m
@@ -65,15 +67,8 @@ for r in rBins:
     
     sum += gN # Calculated to check this sums to NNum (approximately)
     
-    distributionArray.append(g)
     NArraysArray[0].append(gN)
 print("Sum of nanoparticles in initial distribution = " + str(sum))
-
-# Plot the initial probability density function
-plt.plot(rBins, distributionArray)
-plt.title("Nanoparticle radius distribution t = 0")
-plt.ylim(0, 4.5e9)
-plt.show()
 
 # Plot the initial distribution of nanoparticles
 plt.plot(rBins, NArraysArray[0])
@@ -94,14 +89,6 @@ for time in timeArray:
     # Calculate the critical radius
     rCrit = (2*gamma*VmMolar) / (R*Temp*np.log(SS))
     
-    # Plot the nanoparticle distribution every few hundred iterations
-    if timeCount % 400 == 0:
-        plt.plot(rBins, NArraysArray[0])
-        plt.title("Nanoparticles number against radius at t = " + f'{(time-tdiff):.3g}') # Take away tdiff since we are actually plotting the graph from the previous here
-        plt.ylim(0, 4.5e18)
-        plt.plot(rCrit,1e9,'ro')
-        plt.show()
-    
     # Calculate the de-dimensionalised variables
     phi = (R * Temp) / (2 * gamma *VmMolar)
     psi = phi**2 * D * VmMolar * MInf
@@ -115,9 +102,13 @@ for time in timeArray:
     NHalfPosList = []
     NHalfNegList = []
     
+    i = -1  # Used to count through rBins to find rBins element closest in value to rCrit so that the appopriate NArraysArray value can be chosen to plot the rCrit value
     rCount = -1 # Keep track of the number of radius iterations (resets each time iteration)
     for r in rBins:
         rCount += 1
+        
+        if rCrit > r:
+            i += 1
         
         # Calculate the intermediate value of N, i.e. the nucleated N (for this radius value)
         Nprime = NArraysArray[0][rCount] + 0 # This adds 0 for the growth only case, since there is no nucleation
@@ -186,6 +177,16 @@ for time in timeArray:
     #print("SS " + str(SS))
     #print("   ")
     
+    NNumArray.append(np.sum(NArraysArray[0]))
+    
+    if timeCount % 2000 == 0:
+        plt.plot(rBins, NArraysArray[0])
+        plt.title("Nanoparticles number against radius at t = " + f'{time:.3g}')
+        #plt.ylim(0, 4.5e18)
+        plt.plot(rCrit, NArraysArray[0][i], 'ko')
+        print("N at r Crit = " + str(NArraysArray[0][i]))
+        plt.show()
+    
     """
     # Increase the temperature by the heating rate up to the maximum
     if (Temp < Tf):
@@ -214,4 +215,10 @@ plt.plot(timeArrayFull, SSArray)
 plt.title("Supersaturation against time")
 plt.xscale('log')
 plt.yscale('log')
+plt.show()
+
+# Plot the total number of nanoparticles over time
+plt.plot(timeArrayFull, NNumArray)
+plt.title("Number of nanoparticles over time")
+plt.xscale('log')
 plt.show()
