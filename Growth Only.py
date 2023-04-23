@@ -29,7 +29,7 @@ Q = (4*np.pi*density) / (3 * MW * Vtot * MInf)
 smallVal = 1e-2
 
 # Define timesteps to iterate through & create an array
-tmax = 2e-1 #s
+tmax = 2e1 #s
 tdiff = 3e-5
 tmin = tdiff
 timeArray = np.linspace(tdiff, tmax, int((tmax-tmin+tdiff)/tdiff))
@@ -38,7 +38,7 @@ timeArray = np.linspace(tdiff, tmax, int((tmax-tmin+tdiff)/tdiff))
 # Define radius bins
 rdiff =  3e-11 # m
 rmax = 8.1e-9
-rmin = 5e-10
+rmin = 1e-10
 rBins = np.linspace(rmin,rmax,int((rmax-rmin+rdiff)/rdiff))
 
 # Define temperature variable & heating rate
@@ -163,29 +163,32 @@ for time in timeArray:
                     test = NArraysArray[0][rCount-1]
                 
             # Calculate NHalfPos and NHalfNeg using the van Leer function
-            print("growthRatePos = " + str(growthRatePos))
+            #print("growthRatePos = " + str(growthRatePos))
             NHalfPos = NArraysArray[0][rCount] + 0.5*vanLeerFunc(deltapos/deltaneg)*deltaneg
-            #print("NHalfPos = " + str(NHalfPos))
+            #print("NHalfPos = " + str(NHalfPos))1
             growthRatePosArray.append(growthRatePos)
         
              
             NHalfPosList.append(NHalfPos)
-            print("growthRateNeg = " + str(growthRateNeg))
+            #print("growthRateNeg = " + str(growthRateNeg))
             NHalfNeg = NArraysArray[0][rCount] - 0.5*vanLeerFunc(deltaneg/deltapos)*deltapos
             #print("NHalfNeg = " + str(NHalfPos))
             NHalfNegList.append(NHalfNeg)
                 
 
-        """    
+        """
         # Check Courant condition & stop the program if not satisfied
         if (np.abs(growthRatePos) * tdiff/rdiff) > 1 or (np.abs(growthRateNeg) * tdiff/rdiff) >1:
             print("Courant condition not satisfied.")
             print("Courant value for growthratepos " + str(np.abs(growthRatePos) * tdiff/rdiff))
             print("Courant value for growthrateneg " + str(np.abs(growthRateNeg) * tdiff/rdiff))
-            sys.exit()        
+            sys.exit()    
         """
+        
         # Calculate new N & add to the array
         NNew = Nprime - (tdiff/rdiff) * ((growthRatePos*NHalfPos) - (growthRateNeg*NHalfNeg)) # Calculate new N, i.e. N for current timestep
+        if NNew < 0:
+            NNew = 0
         NArraysArray[1].append(NNew)
 
         # Calculate element of SS integral for current r & add to array
