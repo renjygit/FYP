@@ -38,7 +38,7 @@ timeArray = np.linspace(tdiff, tmax, int((tmax-tmin+tdiff)/tdiff))
 # Define radius bins
 rdiff =  2e-11 # m
 rmax = 8.1e-9
-rmin = 1e-10
+rmin = 2e-10
 rBins = np.linspace(rmin,rmax,int((rmax-rmin+rdiff)/rdiff))
 
 # Define temperature variable & heating rate
@@ -61,13 +61,14 @@ print("Initial number of nanoparticles = " + str(NNum))
 # Create the input distribution of nanoparticles
 sum = 0
 for r in rBins:
-    g = (1 / (1.5e-10 * np.sqrt((2*np.pi)))) * np.exp(-0.5*(np.power((r - 1e-9)/(1.5e-10), 2))) # Normal distribution with mean radius 1e-9 m & standard deviation 1e-10 m
+    g = (1 / (1e-10 * np.sqrt((2*np.pi)))) * np.exp(-0.5*(np.power((r - 1e-9)/(1e-10), 2))) # Normal distribution with mean radius 1e-9 m & standard deviation 1e-10 m
     gN = NNum * g * rdiff
     
     sum += gN # Calculated to check this sums to NNum (approximately)
     
     NArraysArray[0].append(gN)
 print("Sum of nanoparticles in initial distribution = " + str(sum))
+print(NArraysArray[0])
 
 NNumArray = [np.sum(NArraysArray[0])]
 
@@ -108,116 +109,98 @@ for time in timeArray:
     NForwardList = []
     NBackwardList = []
     
+    growthRateInterfaceArray = []
+    NInterfaceArray = []
+    rNum = -1
+    for r in rBins: # start with interface to right of first bin (nothing can pass through interface to left) and end with interface to left of final bin (nothing can pass through interface to right)
+        rNum += 1
+        if rNum != (len(rBins) - 1): # do not calculate the value at the interface to the right of the last bin (there are N-1 interfaces)
+            betaPlus = (r+0.5*rdiff) * phi # de-dimensionalised radius
+            growthRateInterfaceDD = (SS - np.exp(1/betaPlus))/(betaPlus + zeta) # De-dimensionalised
+            growthRateInterface = growthRateInterfaceDD * (psi/phi) # Re-dimensionalised
+            growthRateInterfaceArray.append(growthRateInterface)
+            
+            if growthRateInterface > 0: # zero case?
+                deltapos = NArraysArray[0][rNum+1] - NArraysArray[0][rNum]
+                if rNum == 0: # if the growth rate at the first interface is postive, Ni-1 doesnt exist here so set deltaneg = 0 or Ni-1 = 0?
+                    #deltaneg = 0
+                    deltaneg = NArraysArray[0][rNum] - 0 
+                else:
+                    deltaneg = NArraysArray[0][rNum] - NArraysArray[0][rNum-1]
+
+            
+                # Add a small constant to deltapos and deltaneg to avoid division by 0
+                if abs(deltapos) <= smallVal:
+                    if r >= NArrayAvgR[timeCount-1]:
+                        deltapos = -smallVal
+                    else:
+                        deltapos = smallVal
+
+                if abs(deltaneg) <= smallVal:
+                    if r >= NArrayAvgR[timeCount-1]:
+                        deltaneg = -smallVal
+                    else:
+                        deltaneg = smallVal
+                        
+                NInterface = NArraysArray[0][rNum] + 0.5*vanLeerFunc(deltapos/deltaneg)*deltaneg #Ni+1/2
+                NInterfaceArray.append(NInterface)
+            else:
+                if rNum == (len(rBins) - 2): # if the growth rate at the last interface is negative, Ni+1 doesnt exist here so set deltapos = 0 or Ni+1 = 0?
+                    #deltapos = 0
+                    deltapos = 0 - NArraysArray[0][rNum+1]
+                else:
+                    deltapos = NArraysArray[0][rNum+2] - NArraysArray[0][rNum+1]
+                deltaneg = NArraysArray[0][rNum+1] - NArraysArray[0][rNum]
+                
+                # Add a small constant to deltapos and deltaneg to avoid division by 0
+                if abs(deltapos) <= smallVal:
+                    # Add a small constant to deltapos and deltaneg to avoid division by 0
+                    if r >= NArrayAvgR[timeCount-1]:
+                        deltapos = -smallVal
+                    else:
+                        deltapos = smallVal
+
+                if abs(deltaneg) <= smallVal:
+                    if r >= NArrayAvgR[timeCount-1]:
+                        deltaneg = -smallVal
+                    else:
+                        deltaneg = smallVal
+                        
+                NInterface = NArraysArray[0][rNum] - 0.5*vanLeerFunc(deltaneg/deltapos)*deltapos #Ni-1/2
+                NInterfaceArray.append(NInterface)
+
+
     i = -1  # Used to count through rBins to find rBins element closest in value to rCrit so that the appopriate NArraysArray value can be chosen to plot the rCrit value
-    rCount = -1 # Keep track of the number of radius iterations (resets each time iteration)
+    rCount = -1 # Keep track of the number of radius iterations (resets each time iteration)    
     for r in rBins:
         rCount += 1
         
         if rCrit > r:
-            i += 1
-        
-        
-        # Find beta values for radii values (i+1/2) and (i-1/2)
-        betaCentre = r * phi # centred
-        betaPos = (r+0.5*rdiff) * phi # de-dimensionalised radius
-        betaNeg = (r-0.5*rdiff) * phi # de-dimensionalised radius
-
-        # Calculate the growth rates using these beta values & then redimensionalise them
-        #growthRateCentreDD = (SS - np.exp(1/betaCentre))/(betaCentre + zeta)
-        growthRatePosDD = (SS - np.exp(1/betaPos))/(betaPos + zeta) # De-dimensionalised
-        growthRateNegDD = (SS - np.exp(1/betaNeg))/(betaNeg + zeta) # De-dimensionalised
-        #growthRateCentre = growthRateCentreDD * (psi/phi)
-        growthRatePos = growthRatePosDD * (psi/phi) # Re-dimensionalised
-        growthRateNeg = growthRateNegDD * (psi/phi) # Re-dimensionalised
-        
+            i += 1    
         
         # Calculate the intermediate value of N, i.e. the nucleated N (for this radius value)
         Nprime = NArraysArray[0][rCount] + 0 # This adds 0 for the growth only case, since there is no nucleation
-        
-        # Deltapos & deltaneg use number of nanoparticles at radii (i+1) & (i-1), which don't exist at the boundaries, so set NForward and NBackward to previous N for these edge cases
-        if r == rBins[0] or r == rBins[1] or r == rBins[len(rBins) - 1] or r == rBins[len(rBins) - 2]:
-            NForward = NArraysArray[0][rCount]
-            NBackward = NArraysArray[0][rCount]
-            NForwardList.append(NForward)
-            NBackwardList.append(NBackward)
-        else:
-            # Calculate deltapos and deltaneg
-            deltapos = NArraysArray[0][rCount+1] - NArraysArray[0][rCount]
-            deltaForward = NArraysArray[0][rCount+2] - NArraysArray[0][rCount+1] # calculate delta+ for the next rbin
-            deltaneg = NArraysArray[0][rCount] - NArraysArray[0][rCount-1]
-            deltaBackward = NArraysArray[0][rCount-1] - NArraysArray[0][rCount-2] # calculate delta- for the previous rbin 
-            
-            # If one or both of the deltas = 0, one or both of their ratios will diverge / be undefined, so include a condition to avoid this
-            if abs(deltapos) <= smallVal:
-                # Add a small constant to deltapos and deltaneg to avoid division by 0
-                if r >= NArrayAvgR[timeCount-1]:
-                    deltapos = -smallVal
-                else:
-                    deltapos = smallVal
-
-            if abs(deltaneg) <= smallVal:
-                if r >= NArrayAvgR[timeCount-1]:
-                    deltaneg = -smallVal
-                else:
-                    deltaneg = smallVal
-                    
-            if abs(deltaForward) <= smallVal:
-                if (r+rdiff) >= NArrayAvgR[timeCount-1]:
-                    deltaForward = -smallVal
-                else:
-                    deltaForward = smallVal
-
-            if abs(deltaBackward) <= smallVal:
-                if (r-rdiff) >= NArrayAvgR[timeCount-1]:
-                    deltaBackward = -smallVal
-                else:
-                    deltaBackward = smallVal
-            
-            
-            # Calculate NForward and NBackward using the van Leer function
-            # Calculate the value of N at the right interface, using the formula for Ni+1/2 centred on Ni if the growth rate there is > 0 or the formula for Ni-1/2 centred on Ni+1 if not
-            if growthRatePos > 0:
-                NForward = NArraysArray[0][rCount] + 0.5*vanLeerFunc(deltapos/deltaneg)*deltaneg
-            else:
-                NForward = NArraysArray[0][rCount+1] - 0.5*vanLeerFunc(deltapos/deltaForward)*deltaForward # find n-1/2 for next radius bin
-            #print("NForward = " + str(NForward))1
-            NForwardList.append(NForward)
-            
-            # Calculate the value of N at the left interface, using the formula for Ni-1/2 centred on Ni if the growth rate there is < 0 or the formula for Ni+1/2 centred on Ni-1 if not
-            if growthRateNeg < 0:
-                NBackward = NArraysArray[0][rCount] - 0.5*vanLeerFunc(deltaneg/deltapos)*deltapos
-            else:
-                NBackward = NArraysArray[0][rCount-1] + 0.5*vanLeerFunc(deltaneg/deltaBackward)*deltaBackward # find n+1/2 for previous radius bin
-            #print("NBackward = " + str(NForward))
-            NBackwardList.append(NBackward)
-            
-            # debugging
-            if rCount == 10: # values for element 10 of r bins
-                print("NForward = " + str(NForward))
-                print("NBackward = " + str(NBackward))
 
         # Check Courant condition & stop the program if not satisfied
-        if (growthRatePos * tdiff/rdiff) > 1 or (growthRateNeg * tdiff/rdiff) >1: # don't check -ve growth values as these are corrected by setting values of n less than 0 to 0
-            print("Courant condition not satisfied.")
-            print("Courant value for growthratepos " + str(np.abs(growthRatePos) * tdiff/rdiff))
-            print("Courant value for growthrateneg " + str(np.abs(growthRateNeg) * tdiff/rdiff))
-            sys.exit()    
+        if rCount != (len(rBins) - 1):
+            if (growthRateInterfaceArray[rCount] * tdiff/rdiff) > 1: # don't check -ve growth values as these are corrected by setting values of n less than 0 to 0
+                print("Courant condition not satisfied.")
+                print("Courant value for growthratepos " + str(growthRateInterfaceArray[rCount] * tdiff/rdiff))
+                sys.exit()    
         
         
-        # Calculate new N & add to the array
-        NNew = Nprime - (tdiff/rdiff) * ((growthRatePos*NForward) - (growthRateNeg*NBackward)) # Calculate new N, i.e. N for current timestep
-        
-        """
-        if growthRateCentre > 0:
-            NNew = Nprime - (tdiff/rdiff) * ((growthRatePos*NForward) - (growthRateNeg*NBackward)) # Calculate new N, i.e. N for current timestep
-        else:
-            NNew = Nprime - (tdiff/rdiff) * ((growthRatePos*NBackward) - (growthRateNeg*NBackward)) # Calculate new N, i.e. N for current timestep
-        """
+            # Calculate new N & add to the array
+            if rCount == 0 or rCount == (len(rBins) - 2):
+                if r == rBins[0]:
+                    NNew = Nprime - (tdiff/rdiff) * (growthRateInterfaceArray[rCount]*NInterfaceArray[rCount]) # Calculate new N for first bin using only flow into bin from right interface
+                else:
+                    NNew = Nprime - (tdiff/rdiff) * -(growthRateInterfaceArray[rCount-1]*NInterfaceArray[rCount-1]) # Calculate new N for last bin using only flow into bin from left interface
+            else:
+                NNew = Nprime - (tdiff/rdiff) * ((growthRateInterfaceArray[rCount]*NInterfaceArray[rCount]) - (growthRateInterfaceArray[rCount-1]*NInterfaceArray[rCount-1])) # Calculate general new N
         
         # Do not allow the non-physical case of negative amounts of nuclei
         if NNew < 0:
-            NNew = 1e-50 # maybe set to 0
-        
+          NNew = 0
         
         NArraysArray[1].append(NNew)
 
