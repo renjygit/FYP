@@ -29,7 +29,7 @@ Q = (4*np.pi*density) / (3 * MW * Vtot * MInf)
 smallVal = 1e-30
 
 # Define timesteps to iterate through & create an array
-tmax = 24e-5 #s
+tmax = 15e-2 #s
 tdiff = 3e-5
 tmin = tdiff
 timeArray = np.linspace(tdiff, tmax, int((tmax-tmin+tdiff)/tdiff))
@@ -123,8 +123,8 @@ for time in timeArray:
             if growthRateInterface > 0: # zero case?
                 deltapos = NArraysArray[0][rNum+1] - NArraysArray[0][rNum]
                 if rNum == 0: # if the growth rate at the first interface is postive, Ni-1 doesnt exist here so set deltaneg = 0 or Ni-1 = 0?
-                    #deltaneg = 0
-                    deltaneg = NArraysArray[0][rNum] - 0 
+                    deltaneg = 0
+                    #deltaneg = NArraysArray[0][rNum] - 0 
                 else:
                     deltaneg = NArraysArray[0][rNum] - NArraysArray[0][rNum-1]
 
@@ -143,11 +143,13 @@ for time in timeArray:
                         deltaneg = smallVal
                         
                 NInterface = NArraysArray[0][rNum] + 0.5*vanLeerFunc(deltapos/deltaneg)*deltaneg #Ni+1/2
+                if rNum == 0:
+                    print("NInterface for first radius bin = " + str(deltapos/deltaneg))
                 NInterfaceArray.append(NInterface)
             else:
                 if rNum == (len(rBins) - 2): # if the growth rate at the last interface is negative, Ni+1 doesnt exist here so set deltapos = 0 or Ni+1 = 0?
-                    #deltapos = 0
-                    deltapos = 0 - NArraysArray[0][rNum+1]
+                    deltapos = 0
+                    #deltapos = 0 - NArraysArray[0][rNum+1]
                 else:
                     deltapos = NArraysArray[0][rNum+2] - NArraysArray[0][rNum+1]
                 deltaneg = NArraysArray[0][rNum+1] - NArraysArray[0][rNum]
@@ -167,11 +169,13 @@ for time in timeArray:
                         deltaneg = smallVal
                         
                 NInterface = NArraysArray[0][rNum] - 0.5*vanLeerFunc(deltaneg/deltapos)*deltapos #Ni-1/2
+                if rNum == 0:
+                    print("NInterface for first radius bin = " + str(vanLeerFunc(deltapos/deltaneg)))
                 NInterfaceArray.append(NInterface)
 
 
     i = -1  # Used to count through rBins to find rBins element closest in value to rCrit so that the appopriate NArraysArray value can be chosen to plot the rCrit value
-    rCount = -1 # Keep track of the number of radius iterations (resets each time iteration)    
+    rCount = -1 # Keep track of the number of radius iterations (resets each time iteration)   
     for r in rBins:
         rCount += 1
         
@@ -191,24 +195,26 @@ for time in timeArray:
         
             # Calculate new N & add to the array
             if rCount == 0 or rCount == (len(rBins) - 2):
-                if r == rBins[0]:
+                if rCount == 0:
                     NBinChange2 = - (tdiff/rdiff) * (growthRateInterfaceArray[rCount]*NInterfaceArray[rCount])
-                    #if NBinChange2 < 0 and np.abs(NBinChange2) > NArraysArray[0][rCount]: # avoid taking more from a bin than is present in the bin
-                    #    NBinChange2 = -NArraysArray[0][rCount]
+                    if NBinChange2 < 0 and np.abs(NBinChange2) > NArraysArray[0][rCount]: # avoid taking more from a bin than is present in the bin
+                        NBinChange2 = -NArraysArray[0][rCount]
                         
+                    print("NBinChange for first radius bin = " + str(NBinChange2))
                     NNew = Nprime + NBinChange2  # Calculate new N for first bin using only flow into bin from right interface
+                    print("Nnew for first radius bin = " + str(NNew))
                 else:
                     NBinChange3 = - (tdiff/rdiff) * -(growthRateInterfaceArray[rCount-1]*NInterfaceArray[rCount-1])
-                    #if NBinChange3 < 0 and np.abs(NBinChange3) > NArraysArray[0][rCount]: # avoid taking more from a bin than is present in the bin 
-                    #    NBinChange3 = -NArraysArray[0][rCount]
+                    if NBinChange3 < 0 and np.abs(NBinChange3) > NArraysArray[0][rCount]: # avoid taking more from a bin than is present in the bin 
+                        NBinChange3 = -NArraysArray[0][rCount]
                         
                     NNew = Nprime + NBinChange3 # Calculate new N for last bin using only flow into bin from left interface
             else:
                 NBinChange = - (tdiff/rdiff) * ((growthRateInterfaceArray[rCount]*NInterfaceArray[rCount]) - (growthRateInterfaceArray[rCount-1]*NInterfaceArray[rCount-1]))
-                #if NBinChange < 0 and np.abs(NBinChange) > NArraysArray[0][rCount]: # avoid taking more from a bin than is present in the bin
-                #    NBinChange = -NArraysArray[0][rCount]
-                    
-                New = Nprime + NBinChange # Calculate general new N
+                if NBinChange < 0 and np.abs(NBinChange) > NArraysArray[0][rCount]: # avoid taking more from a bin than is present in the bin
+                    NBinChange = -NArraysArray[0][rCount]
+
+                NNew = Nprime + NBinChange # Calculate general new N
         
         # Do not allow the non-physical case of negative amounts of nuclei
         if NNew < 0:
