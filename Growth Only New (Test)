@@ -192,11 +192,23 @@ for time in timeArray:
             # Calculate new N & add to the array
             if rCount == 0 or rCount == (len(rBins) - 2):
                 if r == rBins[0]:
-                    NNew = Nprime - (tdiff/rdiff) * (growthRateInterfaceArray[rCount]*NInterfaceArray[rCount]) # Calculate new N for first bin using only flow into bin from right interface
+                    NBinChange2 = - (tdiff/rdiff) * (growthRateInterfaceArray[rCount]*NInterfaceArray[rCount])
+                    #if NBinChange2 < 0 and np.abs(NBinChange2) > NArraysArray[0][rCount]: # avoid taking more from a bin than is present in the bin
+                    #    NBinChange2 = -NArraysArray[0][rCount]
+                        
+                    NNew = Nprime + NBinChange2  # Calculate new N for first bin using only flow into bin from right interface
                 else:
-                    NNew = Nprime - (tdiff/rdiff) * -(growthRateInterfaceArray[rCount-1]*NInterfaceArray[rCount-1]) # Calculate new N for last bin using only flow into bin from left interface
+                    NBinChange3 = - (tdiff/rdiff) * -(growthRateInterfaceArray[rCount-1]*NInterfaceArray[rCount-1])
+                    #if NBinChange3 < 0 and np.abs(NBinChange3) > NArraysArray[0][rCount]: # avoid taking more from a bin than is present in the bin 
+                    #    NBinChange3 = -NArraysArray[0][rCount]
+                        
+                    NNew = Nprime + NBinChange3 # Calculate new N for last bin using only flow into bin from left interface
             else:
-                NNew = Nprime - (tdiff/rdiff) * ((growthRateInterfaceArray[rCount]*NInterfaceArray[rCount]) - (growthRateInterfaceArray[rCount-1]*NInterfaceArray[rCount-1])) # Calculate general new N
+                NBinChange = - (tdiff/rdiff) * ((growthRateInterfaceArray[rCount]*NInterfaceArray[rCount]) - (growthRateInterfaceArray[rCount-1]*NInterfaceArray[rCount-1]))
+                #if NBinChange < 0 and np.abs(NBinChange) > NArraysArray[0][rCount]: # avoid taking more from a bin than is present in the bin
+                #    NBinChange = -NArraysArray[0][rCount]
+                    
+                New = Nprime + NBinChange # Calculate general new N
         
         # Do not allow the non-physical case of negative amounts of nuclei
         if NNew < 0:
@@ -222,11 +234,11 @@ for time in timeArray:
         """
     
     # Add mean radius of N to the array
+    print(NArraysArray[1])
     NArrayAvgR.append(np.average(rBins, weights = NArraysArray[1]))
     #print("Avg N radius = " + str(NArrayAvgR[timeCount]))
     # Delete N array for previous timestep (to conserve memory, since it is no longer needed)
     del NArraysArray[0]
-    print(NArraysArray[0])
 
         
     # Calculate SS value for this timestep & add to the array
